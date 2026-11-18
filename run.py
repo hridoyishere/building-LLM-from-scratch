@@ -1,72 +1,35 @@
-import re
 
-class SimpleTokenizer:
+import torch
+from torch.utils.data import Dataset, DataLoader
 
-    def __init__(self, vocabulary):
-        self.str_to_int = {
-            token: index
-            for index, token in enumerate(vocabulary)
-        }
+class GPTDataset(Dataset):
+    def __init__(self, tokens, context_size):
+        self.tokens = torch.tensor(tokens)
+        self.context_size = context_size
 
-        self.int_to_str = {
-            index: token
-            for token, index in self.str_to_int.items()
-        }
+    def __len__(self):
+        return len(self.tokens) - self.context_size
 
-    def encode(self, text):
-        print(self.int_to_str)
-        print(self.str_to_int)
-
-        tokens = re.split(r'([,.!?]|\s)', text)
-
-        tokens = [
-            token for token in tokens
-            if token.strip()
-        ]
-
-        # Replace unknown tokens
-        tokens = [
-            token if token in self.str_to_int
-            else "<|unk|>"
-            for token in tokens
-        ]
-
-        token_ids = [
-            self.str_to_int[token]
-            for token in tokens
-        ]
-
-        return token_ids
-
-    def decode(self, token_ids):
-
-        tokens = [
-            self.int_to_str[token_id]
-            for token_id in token_ids
-        ]
-
-        return " ".join(tokens)
+    def __getitem__(self, index):
+        x = self.tokens[index:index + self.context_size]
+        y = self.tokens[index + 1:index + self.context_size + 1]
+        return x, y
 
 
-# Example dataset
-text = "I love Python. I love programming."
+tokens = [10, 20, 30, 40, 50, 60, 70, 80]
 
-# Create vocabulary
-tokens = re.split(r'([,.!?]|\s)', text)
-tokens = [token for token in tokens if token.strip()]
+dataset = GPTDataset(tokens, context_size=3)
 
-vocabulary = sorted(set(tokens))
+dataloader = DataLoader(
+    dataset,
+    batch_size=2,
+    shuffle=False
+)
 
-# Add special tokens
-vocabulary.extend(["<|unk|>", "<|endoftext|>"])
+for inputs, targets in dataloader:
+    print("Inputs:")
+    print(inputs)
 
-# Create tokenizer
-tokenizer = SimpleTokenizer(vocabulary)
-
-# Test unknown word
-test_text = "I love JavaScript."
-
-encoded = tokenizer.encode(test_text)
-
-print("Encoded:", encoded)
-print("Decoded:", tokenizer.decode(encoded))
+    print("Targets:")
+    print(targets)
+    print("----------------")
